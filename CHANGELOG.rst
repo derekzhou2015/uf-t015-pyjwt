@@ -7,6 +7,21 @@ This project adheres to `Semantic Versioning <https://semver.org/>`__.
 `Unreleased <https://github.com/jpadilla/pyjwt/compare/2.15.1...HEAD>`__
 -------------------------------------------------------------------------
 
+Security
+~~~~~~~~
+
+- Normalize JSON parse failures at every key-side entry point, not just the
+  token path. ``PyJWK.from_json()``, ``PyJWKSet.from_json()``,
+  ``PyJWKClient.fetch_data()`` and the per-algorithm ``from_jwk()``
+  JSON-string paths now wrap malformed, truncated, undecodable, and deeply
+  nested JSON in their own ``PyJWTError`` subclasses (``PyJWKError``,
+  ``PyJWKSetError``, ``PyJWKClientError``, and ``InvalidKeyError``
+  respectively) instead of leaking ``json.JSONDecodeError``/``RecursionError``
+  to the caller. Valid JSON that is not a JSON object is likewise reported as
+  a ``PyJWTError`` rather than an ``AttributeError``. This brings the depth of
+  the v2.15.0 hardening for JWT headers and payloads to the JWK and JWKS
+  inputs.
+
 Changed
 ~~~~~~~
 

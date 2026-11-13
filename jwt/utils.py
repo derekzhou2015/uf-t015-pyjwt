@@ -1,7 +1,10 @@
 import base64
 import binascii
+import json
 import re
-from typing import Optional, Union
+from typing import Any, Optional, Union
+
+from .exceptions import PyJWTError
 
 try:
     from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurve
@@ -20,6 +23,33 @@ def force_bytes(value: Union[bytes, str]) -> bytes:
         return value
     else:
         raise TypeError("Expected a string or bytes value")
+
+
+def load_json(
+    data: Union[bytes, str],
+    *,
+    error_cls: type[PyJWTError],
+    error_prefix: str,
+) -> Any:
+    """Decode a JSON document, normalizing interpreter-level parse failures.
+
+    ``json.loads()`` raises ``ValueError`` (including its ``JSONDecodeError``
+    and ``UnicodeDecodeError`` subclasses) for malformed or truncated input,
+    and ``RecursionError`` for pathologically nested input. Neither is part
+    of this library's contract, so every JSON entry point converts them into
+    ``error_cls`` and chains the original exception as ``__cause__``. This
+    mirrors the normalization the token decode path applies to JWS headers
+    and JWT payloads, so untrusted JSON is handled the same way whichever
+    entry point it reaches.
+
+    :param data: The JSON document, as text or bytes.
+    :param error_cls: The ``PyJWTError`` subclass to raise.
+    :param error_prefix: Message prefix; the original exception is appended.
+    """
+    try:
+        return json.loads(data)
+    except (ValueError, RecursionError) as error:
+        raise error_cls(f"{error_prefix}: {error}") from error
 
 
 def base64url_decode(input: Union[bytes, str]) -> bytes:

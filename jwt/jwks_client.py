@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import http.client
-import json
 import math
 import threading
 import time
@@ -16,6 +15,7 @@ from .api_jwk import PyJWK, PyJWKSet
 from .api_jwt import decode_complete as decode_token
 from .exceptions import PyJWKClientConnectionError, PyJWKClientError
 from .jwk_set_cache import JWKSetCache
+from .utils import load_json
 
 
 class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -154,7 +154,8 @@ class PyJWKClient:
         :returns: The parsed JWK Set as a dictionary.
         :raises PyJWKClientConnectionError: If the HTTP request fails.
         :raises PyJWKClientError: If the endpoint does not return a JSON
-            object.
+            object, or if the response body is not valid JSON (malformed,
+            truncated, or deeply nested).
         :raises PyJWKSetError: If the JWK Set cache is enabled and the
             response contains no usable keys.
         """
@@ -165,13 +166,23 @@ class PyJWKClient:
                 handlers.append(urllib.request.HTTPSHandler(context=self.ssl_context))
             opener = urllib.request.build_opener(*handlers)
             with opener.open(r, timeout=self.timeout) as response:
-                jwk_set = json.load(response)
+                raw_jwk_set = response.read()
         except (URLError, TimeoutError, http.client.HTTPException) as e:
             if isinstance(e, HTTPError):
                 e.close()
             raise PyJWKClientConnectionError(
                 f'Fail to fetch data from the url, err: "{e}"'
             ) from e
+
+        # The response body is untrusted input from a remote endpoint. Parse it
+        # outside the network-error handler so a malformed or pathologically
+        # nested payload is reported as a JWKS parsing failure, not as a
+        # connection failure or a raw interpreter exception. The same
+        # normalization applies to the token decode path, so untrusted JSON
+        # is handled identically whichever entry point it reaches.
+        jwk_set = load_json(
+            raw_jwk_set, error_cls=PyJWKClientError, error_prefix="Invalid JWKS"
+        )
 
         # Validate the payload before it reaches the cache, so an endpoint
         # returning something that isn't a JSON object is reported as such

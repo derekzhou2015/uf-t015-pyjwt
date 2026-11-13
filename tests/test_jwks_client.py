@@ -116,7 +116,7 @@ def mocked_timeout() -> Iterator[mock.Mock]:
 @contextlib.contextmanager
 def mocked_incomplete_read_response() -> Iterator[mock.Mock]:
     # The connection drops partway through the body, which surfaces as
-    # http.client.IncompleteRead when json.load() reads the response.
+    # http.client.IncompleteRead while fetch_data() reads the response.
     with mock.patch("urllib.request.build_opener") as build_opener_mock:
         opener = mock.Mock()
         build_opener_mock.return_value = opener

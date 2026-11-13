@@ -28,6 +28,7 @@ from .utils import (
     from_base64url_uint,
     is_pem_format,
     is_ssh_key,
+    load_json,
     raw_to_der_signature,
     to_base64url_uint,
 )
@@ -461,15 +462,17 @@ class HMACAlgorithm(Algorithm):
 
     @staticmethod
     def from_jwk(jwk: str | JWKDict) -> bytes:
-        try:
-            if isinstance(jwk, str):
-                obj: JWKDict = json.loads(jwk)
-            elif isinstance(jwk, dict):
-                obj = jwk
-            else:
-                raise ValueError
-        except ValueError:
-            raise InvalidKeyError("Key is not valid JSON") from None
+        if isinstance(jwk, str):
+            obj: JWKDict = load_json(
+                jwk, error_cls=InvalidKeyError, error_prefix="Key is not valid JSON"
+            )
+        elif isinstance(jwk, dict):
+            obj = jwk
+        else:
+            raise InvalidKeyError("Key is not valid JSON")
+
+        if not isinstance(obj, dict):
+            raise InvalidKeyError("Key is not valid JSON")
 
         if obj.get("kty") != "oct":
             raise InvalidKeyError("Not an HMAC key")
@@ -609,15 +612,19 @@ if has_crypto:
 
         @staticmethod
         def from_jwk(jwk: str | JWKDict) -> AllowedRSAKeys:
-            try:
-                if isinstance(jwk, str):
-                    obj = json.loads(jwk)
-                elif isinstance(jwk, dict):
-                    obj = jwk
-                else:
-                    raise ValueError
-            except ValueError:
-                raise InvalidKeyError("Key is not valid JSON") from None
+            if isinstance(jwk, str):
+                obj = load_json(
+                    jwk,
+                    error_cls=InvalidKeyError,
+                    error_prefix="Key is not valid JSON",
+                )
+            elif isinstance(jwk, dict):
+                obj = jwk
+            else:
+                raise InvalidKeyError("Key is not valid JSON")
+
+            if not isinstance(obj, dict):
+                raise InvalidKeyError("Key is not valid JSON")
 
             if obj.get("kty") != "RSA":
                 raise InvalidKeyError("Not an RSA key") from None
@@ -833,15 +840,19 @@ if has_crypto:
 
         @staticmethod
         def from_jwk(jwk: str | JWKDict) -> AllowedECKeys:
-            try:
-                if isinstance(jwk, str):
-                    obj = json.loads(jwk)
-                elif isinstance(jwk, dict):
-                    obj = jwk
-                else:
-                    raise ValueError
-            except ValueError:
-                raise InvalidKeyError("Key is not valid JSON") from None
+            if isinstance(jwk, str):
+                obj = load_json(
+                    jwk,
+                    error_cls=InvalidKeyError,
+                    error_prefix="Key is not valid JSON",
+                )
+            elif isinstance(jwk, dict):
+                obj = jwk
+            else:
+                raise InvalidKeyError("Key is not valid JSON")
+
+            if not isinstance(obj, dict):
+                raise InvalidKeyError("Key is not valid JSON")
 
             if obj.get("kty") != "EC":
                 raise InvalidKeyError("Not an Elliptic curve key") from None
@@ -1077,15 +1088,19 @@ if has_crypto:
 
         @staticmethod
         def from_jwk(jwk: str | JWKDict) -> AllowedOKPKeys:
-            try:
-                if isinstance(jwk, str):
-                    obj = json.loads(jwk)
-                elif isinstance(jwk, dict):
-                    obj = jwk
-                else:
-                    raise ValueError
-            except ValueError:
-                raise InvalidKeyError("Key is not valid JSON") from None
+            if isinstance(jwk, str):
+                obj = load_json(
+                    jwk,
+                    error_cls=InvalidKeyError,
+                    error_prefix="Key is not valid JSON",
+                )
+            elif isinstance(jwk, dict):
+                obj = jwk
+            else:
+                raise InvalidKeyError("Key is not valid JSON")
+
+            if not isinstance(obj, dict):
+                raise InvalidKeyError("Key is not valid JSON")
 
             if obj.get("kty") != "OKP":
                 raise InvalidKeyError("Not an Octet Key Pair")

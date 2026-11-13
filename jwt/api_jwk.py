@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import time
 from collections.abc import Iterator
 from typing import Any
@@ -14,6 +13,7 @@ from .exceptions import (
     PyJWTError,
 )
 from .types import JWKDict
+from .utils import load_json
 
 
 class PyJWK:
@@ -108,8 +108,12 @@ class PyJWK:
         :type algorithm: str or None
 
         :rtype: PyJWK
+        :raises PyJWKError: If ``data`` is not valid JSON.
+        :raises InvalidKeyError: If ``data`` is JSON but not a JSON object.
         """
-        obj = json.loads(data)
+        obj = load_json(data, error_cls=PyJWKError, error_prefix="Invalid JWK")
+        if not isinstance(obj, dict):
+            raise InvalidKeyError("Invalid JWK: must be a JSON object")
         return PyJWK.from_dict(obj, algorithm)
 
     @property
@@ -166,12 +170,20 @@ class PyJWKSet:
 
     @staticmethod
     def from_dict(obj: dict[str, Any]) -> PyJWKSet:
+        if not isinstance(obj, dict):
+            raise PyJWKSetError("Invalid JWK Set value")
         keys = obj.get("keys", [])
         return PyJWKSet(keys)
 
     @staticmethod
     def from_json(data: str) -> PyJWKSet:
-        obj = json.loads(data)
+        """Create a :class:`PyJWKSet` object from a JWKS JSON string.
+
+        :param str data: The JWK Set, as a JSON string.
+        :rtype: PyJWKSet
+        :raises PyJWKSetError: If ``data`` is not valid JSON or not a JWK Set.
+        """
+        obj = load_json(data, error_cls=PyJWKSetError, error_prefix="Invalid JWK Set")
         return PyJWKSet.from_dict(obj)
 
     def __getitem__(self, kid: str) -> PyJWK:
